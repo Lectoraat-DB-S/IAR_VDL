@@ -1,14 +1,13 @@
-import os
-import sys
-from PyQt5.QtWidgets import *
+import csv
 from OCC.Display.backend import load_backend
+from OCC.Core.STEPControl import STEPControl_Reader
+from OCC.Core.Graphic3d import *
+from PyQt5.QtWidgets import *
+from CadConverter import CadConverter
 
 load_backend("pyqt5")
-import OCC.Display.qtDisplay as qtDisplay
 
-from OCC.Core.STEPControl import STEPControl_Reader
-from CadConverter import CadConverter
-from OCC.Core.Graphic3d import *
+import OCC.Display.qtDisplay as qtDisplay
 
 
 class App(QDialog):
@@ -56,7 +55,7 @@ class App(QDialog):
 
     def displayBOX(self):
         step_reader = STEPControl_Reader()
-        step_reader.ReadFile("C:\\Users\\daves\\Documents\\Minor FvdT VDL\\Solidworks\\115-04621-02.STP")
+        step_reader.ReadFile("C:\\Users\\daves\\Documents\\Minor FvdT VDL\\Solidworks\\test object 8 hoeken.STEP")
         step_reader.TransferRoots()
         shape = step_reader.OneShape()
         self.ais_box = self.display.DisplayShape(shape, material=Graphic3d_NOM_ALUMINIUM)[0]
@@ -66,9 +65,11 @@ class App(QDialog):
         self.display.Context.Erase(self.ais_box, True)
 
     def calculateBOX(self):
-        step = CadConverter("C:\\Users\\daves\\Documents\\Minor FvdT VDL\\Solidworks\\115-04621-02.stp")
+        step = CadConverter("C:\\Users\\daves\\Documents\\Minor FvdT VDL\\Solidworks\\test object 8 hoeken.STEP")
 
         step.find_holes_in_step()
         step.remove_bottem_positions()
 
-        print(step.holes)
+        print(step.holes_list.holes)
+
+        step.holes_list.write_csv()

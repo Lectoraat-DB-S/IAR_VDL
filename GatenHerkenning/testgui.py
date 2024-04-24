@@ -1,24 +1,12 @@
-##Author github user @Tanneguydv, 2021
-
-import os
+import OCC.Display.qtDisplay as qtDisplay
 import sys
-from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
-from OCC.Core.STEPControl import *
-
-from PyQt5.QtWidgets import (
-    QApplication,
-    QWidget,
-    QPushButton,
-    QHBoxLayout,
-    QGroupBox,
-    QDialog,
-    QVBoxLayout,
-)
+import os
 
 from OCC.Display.backend import load_backend
+from OCC.Core.STEPControl import *
+from PyQt5.QtWidgets import *
 
 load_backend("pyqt5")
-import OCC.Display.qtDisplay as qtDisplay
 
 
 class App(QDialog):
@@ -62,7 +50,7 @@ class App(QDialog):
 
     def displayBOX(self):
         step_reader = STEPControl_Reader()
-        step_reader.ReadFile("C:\\Users\\daves\\Documents\\Minor FvdT VDL\\Solidworks\\115-04621-02.STP")
+        step_reader.ReadFile("C:\\Users\\daves\\Documents\\Minor FvdT VDL\\Solidworks\\test object 8 hoeken.STEP")
         step_reader.TransferRoots()
         shape = step_reader.OneShape()
         self.ais_box = self.display.DisplayShape(shape)[0]

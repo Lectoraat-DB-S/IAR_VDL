@@ -1,4 +1,4 @@
-# from Hole import Hole
+from Hole import Hole
 import numpy
 from OCC.Core.BRepAdaptor import *
 from OCC.Core.STEPControl import *
@@ -6,14 +6,14 @@ from OCC.Core.GeomAbs import *
 from OCC.Core.TopExp import *
 from OCC.Core.TopAbs import *
 from OCC.Core.TopoDS import *
-from Hole import *
+from HolesList import HolesList
 
 
 class CadConverter:
     def __init__(self, step_file_path):
         self.step_file_path = step_file_path
         self.precision = 4
-        self.holes = {}
+        self.holes_list = HolesList("a")
 
     def calculate_coordinates(self, point, distance):
         """
@@ -27,14 +27,14 @@ class CadConverter:
         x, y, z, rx, ry, rz = point
 
         direction = numpy.array([rx, ry, rz])
-        norm = numpy.linalg.norm(direction)
+        # norm = numpy.linalg.norm(direction)
+        #
+        # if norm == 0:
+        #     return None
+        #
+        # normalized_direction = direction / norm
 
-        if norm == 0:
-            return None
-
-        normalized_direction = direction / norm
-
-        movement_vector = normalized_direction * distance
+        movement_vector = direction * distance
 
         new_point = (round(x + movement_vector[0], self.precision),
                      round(y + movement_vector[1], self.precision),
@@ -45,15 +45,15 @@ class CadConverter:
     def remove_bottem_positions(self):
         holes_to_remove = []
 
-        for hole in self.holes.values():
+        for hole in self.holes_list.holes.values():
             point = self.calculate_coordinates(hole.location + hole.direction, hole.depth)
 
-            if point in self.holes:
+            if point in self.holes_list.holes:
                 holes_to_remove.append(hole.location)
 
         for hole in holes_to_remove:
-            del self.holes[hole]
-        print("Found", len(self.holes), "holes.")
+            del self.holes_list.holes[hole]
+        print("Found", len(self.holes_list.holes), "holes.")
 
     def find_circles_attached_to_cylinder(self, shape):
         circular_edges, surfaces = [], []
@@ -128,7 +128,8 @@ class CadConverter:
 
                 hole = Hole(location, direction, diameter, depth)
 
-                if hole not in self.holes:
-                    self.holes[location] = hole
+                if hole not in self.holes_list.holes:
+                    if diameter < 20:
+                        self.holes_list.holes[location] = hole
 
-        print("Found", str(len(self.holes)), "circles.")
+        print("Found", str(len(self.holes_list.holes)), "circles.")
