@@ -1,40 +1,38 @@
-import os
-
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Display.backend import load_backend, get_qt_modules
 from OCC.Core.Graphic3d import *
 from PyQt5.QtWidgets import *
-from CadConverter import CadConverter
+# from CadConverter import CadConverter
 
 load_backend("pyqt5")
 
 import OCC.Display.qtDisplay as qtDisplay
 
 
-class App(QDialog):
-    def __init__(self):
+class Screen(QDialog):
+    def __init__(self, horizontal_offset=450, vertical_offset=200, width=1000, height=650, title="Title"):
         super().__init__()
-        self.title = "PyQt5 / pythonOCC"
-        self.left = 200
-        self.top = 100
-        self.width = 1500
-        self.height = 800
+        self.title = title
+        self.horizontal_offset = horizontal_offset
+        self.vertical_offset = vertical_offset
+        self.width = width
+        self.height = height
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setGeometry(self.horizontal_offset, self.vertical_offset, self.width, self.height)
         self.createVerticalLayout()
-        self.createHorizontalLayout()
 
         windowLayout = QVBoxLayout()
 
-        windowLayout.addWidget(self.horizontalGroupBox)
+        windowLayout.addWidget(self.verticalGroupBox)
         self.setLayout(windowLayout)
+
         self.show()
-        self.canvas.InitDriver()
-        self.canvas.resize(200, 200)
-        self.display = self.canvas._display
+        # self.canvas.InitDriver()
+        # self.canvas.resize(200, 200)
+        # self.display = self.canvas._display
 
     def createVerticalLayout(self):
         self.verticalGroupBox = QGroupBox("Actions")
@@ -48,23 +46,9 @@ class App(QDialog):
         eras.clicked.connect(self.eraseBOX)
         layout.addWidget(eras)
 
-        calc = QPushButton("Calculate Points", self)
-        calc.clicked.connect(self.calculateBOX)
-        layout.addWidget(calc)
-
         layout.addStretch(1)
 
         self.verticalGroupBox.setLayout(layout)
-
-    def createHorizontalLayout(self):
-        self.horizontalGroupBox = QGroupBox("Display PythonOCC")
-        layout = QHBoxLayout()
-
-        layout.addWidget(self.verticalGroupBox)
-
-        self.canvas = qtDisplay.qtViewer3d(self)
-        layout.addWidget(self.canvas)
-        self.horizontalGroupBox.setLayout(layout)
 
     def displayBOX(self):
         step_reader = STEPControl_Reader()
@@ -76,14 +60,3 @@ class App(QDialog):
 
     def eraseBOX(self):
         self.display.Context.Erase(self.ais_box, True)
-
-    @staticmethod
-    def calculateBOX(self):
-        step = CadConverter("C:\\Users\\daves\\Documents\\Minor FvdT VDL\\Solidworks\\test object 8 hoeken.STEP")
-
-        step.find_holes_in_step()
-        step.remove_bottem_positions()
-
-        print(step.holes_list.holes)
-
-        step.holes_list.write_csv()

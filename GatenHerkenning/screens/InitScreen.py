@@ -1,20 +1,18 @@
-import os
-
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Display.backend import load_backend, get_qt_modules
 from OCC.Core.Graphic3d import *
 from PyQt5.QtWidgets import *
-from CadConverter import CadConverter
+from PyQt5.QtCore import Qt
 
 load_backend("pyqt5")
 
 import OCC.Display.qtDisplay as qtDisplay
 
 
-class App(QDialog):
+class InitScreen(QDialog):
     def __init__(self):
         super().__init__()
-        self.title = "PyQt5 / pythonOCC"
+        self.title = "Step Covertor"
         self.left = 200
         self.top = 100
         self.width = 1500
@@ -24,13 +22,15 @@ class App(QDialog):
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
+
         self.createVerticalLayout()
         self.createHorizontalLayout()
+        self.createToolbar()
 
         windowLayout = QVBoxLayout()
-
         windowLayout.addWidget(self.horizontalGroupBox)
         self.setLayout(windowLayout)
+
         self.show()
         self.canvas.InitDriver()
         self.canvas.resize(200, 200)
@@ -66,6 +66,19 @@ class App(QDialog):
         layout.addWidget(self.canvas)
         self.horizontalGroupBox.setLayout(layout)
 
+    def createToolbar(self):
+        toolbar = QToolBar("Toolbar")
+        maximizeAction = QAction("Maximize", self)
+        maximizeAction.triggered.connect(self.maximizeWindow)
+        toolbar.addAction(maximizeAction)
+
+        # Here, we add the toolbar to the layout
+        layout = self.layout()
+        layout.addWidget(toolbar)
+
+    def maximizeWindow(self):
+        self.showMaximized()
+
     def displayBOX(self):
         step_reader = STEPControl_Reader()
         step_reader.ReadFile("C:\\Users\\daves\\Documents\\Minor FvdT VDL\\Solidworks\\115-04621-02.stp")
@@ -79,11 +92,12 @@ class App(QDialog):
 
     @staticmethod
     def calculateBOX(self):
-        step = CadConverter("C:\\Users\\daves\\Documents\\Minor FvdT VDL\\Solidworks\\test object 8 hoeken.STEP")
-
-        step.find_holes_in_step()
-        step.remove_bottem_positions()
-
-        print(step.holes_list.holes)
-
-        step.holes_list.write_csv()
+        # step = CadConverter("C:\\Users\\daves\\Documents\\Minor FvdT VDL\\Solidworks\\test object 8 hoeken.STEP")
+        #
+        # step.find_holes_in_step()
+        # step.remove_bottem_positions()
+        #
+        # print(step.holes_list.holes)
+        #
+        # step.holes_list.write_csv()
+        print("abc")

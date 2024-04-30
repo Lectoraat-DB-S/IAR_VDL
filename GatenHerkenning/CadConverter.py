@@ -55,6 +55,7 @@ class CadConverter:
             del self.holes_list.holes[hole]
         print("Found", len(self.holes_list.holes), "holes.")
 
+    @staticmethod
     def find_circles_attached_to_cylinder(self, shape):
         circular_edges, surfaces = [], []
 
