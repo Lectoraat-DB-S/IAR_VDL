@@ -4,7 +4,6 @@
 IP_PC  = "192.168.0.16" # The IP of the PC/Laptop the robot will be connected to.
 PORT_SENDING = 30022 # The port to send returning data to. Make sure this value is the same as in the python script.
 
-
 def reply(command):
     output = command # For some reason, a argument provided that isn't any specific type of variable, can just be executed as code.
     socket_send_string(output,"responder") # Send output back over reading socket, with the output of the function as utf8 string.
@@ -17,9 +16,31 @@ end
 
 def measure_point():
   curPose = get_actual_tcp_pose()
-  force_mode(curPose, [0,0,1,0,0,0], [0,0,10,0,0,0],2,[0.5,0.5,2,0.5,0.5,0.5])
+  force_mode(curPose, [0,0,1,0,0,0], [0,0,5,0,0,0],2,[0.5,0.5,2,0.5,0.5,0.5])
+  detect = False
   while not detect:
     detect = get_digital_in(7)
+    sync()
+  end
+  end_force_mode()
+  socket_send_string("found","responder")
+end
+
+def measure_edge():
+  basePose = p[0,0,0,0,0,0]
+  currentPose = get_actual_tcp_pose()
+
+  # DEBUG
+  socket_send_string(basePose,"responder")
+  sleep(1.0)
+  socket_send_string(currentPose,"responder")
+  # -----
+
+  force_mode(basePose, [0,1,0,0,0,0], [0,5,0,0,0,0],2,[0.5,0.5,2,0.5,0.5,0.5])
+  detect = True
+  while detect:
+    detect = get_digital_in(7)
+    sync()
   end
   end_force_mode()
   socket_send_string("found","responder")
