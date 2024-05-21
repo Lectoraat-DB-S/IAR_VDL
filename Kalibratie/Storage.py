@@ -4,20 +4,21 @@ import csv
 import math
 
 measuredCounter = 0
+measuredEdgeCounter = 0
 
 # def retrievePoint()
 
-def MeasurePoint(write_conn,read_conn):
+def MeasurePoint(write_conn,read_conn,count=measuredCounter):
     global measuredCounter
     curPose = urc.readWrite("get_actual_tcp_pose()",write_conn,read_conn)
-    print(curPose)
+    print("[COBOT] Starting Position is: " + curPose)
     urc.asyncWrite("measure_point()",write_conn)
     while urc.read(read_conn) == 1:
         print("Waiting...")
     print("Done")
     time.sleep(1)
     measuredPoint = urc.readWrite("get_actual_tcp_pose()",write_conn,read_conn)
-    print("[COBOT] Position is: " + measuredPoint)
+    print("[COBOT] Measured position is: " + measuredPoint)
     urc.syncWrite("movel(" + curPose + ",a=1.2,v=0.25,t=0,r=0)",write_conn,read_conn)
 
     # Format the pose (string) variable into a array of smaller strings for each value.
@@ -31,24 +32,35 @@ def MeasurePoint(write_conn,read_conn):
     try:
         with open("Kalibratie/Measurements/points.csv", mode="a", newline = '') as f:
             writer = csv.writer(f, delimiter=",")
-            writer.writerow(["Point" + str(measuredCounter),measuredPoint])
-            measuredCounter = measuredCounter + 1
+            writer.writerow(["Point" + str(count),measuredPoint])
+            count = count + 1
+            if count == (measuredCounter-1):
+                measuredCounter = count
     except Exception as err:
         print(err)
 
-    return Magnitude
+    return Magnitude,measuredPoint
 
-def MeasureEdge(write_conn,read_conn):
-    urc.asyncWrite("measure_edge()",write_conn)
+def MeasureEdge(write_conn,read_conn,direction,power):
+    global measuredEdgeCounter
+    urc.asyncWrite("measure_edge("+ direction + ", " + power + ")",write_conn)
     while urc.read(read_conn) == 1:
         print("Waiting...")
     print("Done")
 
+    time.sleep(0.5)
     # DEBUG
-    basePose = urc.read(read_conn)
-    currentPose = urc.read(read_conn)
-    print(basePose)
-    print(currentPose)
+    edgePosition = urc.read(read_conn)
+
+    print("[COBOT] Possible Edge Position is: " + str(edgePosition))
+
+    try:
+        with open("Kalibratie/Measurements/points.csv", mode="a", newline = '') as f:
+            writer = csv.writer(f, delimiter=",")
+            writer.writerow(["Edge" + str(measuredEdgeCounter),edgePosition])
+            measuredEdgeCounter = measuredEdgeCounter + 1
+    except Exception as err:
+        print(err)
 
 def readPoint(filename,index):
     try:

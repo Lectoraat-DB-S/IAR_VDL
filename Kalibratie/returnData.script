@@ -34,6 +34,7 @@ def measure_edge():
   socket_send_string(basePose,"responder")
   sleep(1.0)
   socket_send_string(currentPose,"responder")
+  sleep(0.5)
   # -----
 
   force_mode(basePose, [0,1,0,0,0,0], [0,5,0,0,0,0],2,[0.5,0.5,2,0.5,0.5,0.5])

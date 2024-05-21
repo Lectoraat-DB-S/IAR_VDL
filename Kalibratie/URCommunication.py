@@ -116,7 +116,7 @@ def asyncWrite(command,write_conn):
         return 2
     return 0
 
-def syncWrite(command,write_conn,read_conn):
+def syncWrite(command,write_conn,read_conn,timeout=10):
     """!
     A function that writes a command to the Cobot, after which it halts execution until a "exec_done" response is recieved.
     This function listens to both the acknowledgement and a "done" signal when the cobot has executed the command.
@@ -129,12 +129,16 @@ def syncWrite(command,write_conn,read_conn):
 
     \retval State The value stating if the function ran properly: 0 means it ran correctly.
     """
+    curTimeout = read_conn.gettimeout()
+    read_conn.settimeout(timeout)
+
     try:
         if asyncWrite("run_sync(" + command + ")",write_conn) != 0:
             raise RuntimeError('write_failed')
     except RuntimeError as err:
         if err.args[0] == 'write_failed':
             print("[ERROR] Write Command failed, see previous outputs.")
+            read_conn.settimeout(timeout)
             return 2
     
     try:
@@ -143,10 +147,13 @@ def syncWrite(command,write_conn,read_conn):
             raise ValueError()
     except TimeoutError:
         print("[ERROR] Read timed out.")
+        read_conn.settimeout(timeout)
         return 1
     except ValueError:
         print("[ERROR] Recieved signal not expected.")
+        read_conn.settimeout(timeout)
         return 3
+    read_conn.settimeout(timeout)
     return 0
 
 def readWrite(command,write_conn,read_conn):
