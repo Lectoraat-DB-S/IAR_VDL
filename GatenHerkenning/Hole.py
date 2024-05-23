@@ -4,3 +4,4 @@ class Hole:
         self.direction = direction
         self.diameter = diameter
         self.depth = depth
+        self.insert_type = None
