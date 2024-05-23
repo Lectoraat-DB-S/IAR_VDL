@@ -18,6 +18,10 @@ import numpy as np
 
 #print(getSquareFromCorner(DELTA,FIRST_CORNER,SIDES_LENGTH))
 
+def calcMag(point1,point2):
+    return math.sqrt(((float(point2[0])-float(point1[0]))**2) + ((float(point2[1])-float(point1[1]))**2))
+
+
 # T2 - Expected positions into measurements.
 xp1 = [-1,1]
 xp2 = [1,1]
@@ -29,7 +33,10 @@ xcenter = [0,0]
 J = [0.4104146877838, 0.4104146877838]
 K = [0.7506960155965, 0.7506960155965]
 I = [-0.6220664717211, 0.6220664717211]
-ExpectedCorners = [[-1,0],[0,1],[1,0],[0,-1]]
+ExpectedCorners = [[-1,1],[0,2],[1,1],[0,0]]
+ExpectedCentre = [0,1]
+
+MeasuredCorner = "BottomLeft"
 
 # # This is a erroring test set: Here, one of the measured lines is perfectly straight, following x=y*0.
 # # This causes issues when trying to calculate a coefficient, as this causes a division by 0 error. (It attempts to create a infinitely large coefficient, as it's a straight line up.)
@@ -67,8 +74,7 @@ except ZeroDivisionError as err:
     print("[ERROR] Division by Zero found, one of the results are 0, this means one of the two lines have a difference of 0.")
     print("[ERROR] Calculation done: RC_Line2 = -1 * "+ str((K[0]-J[0])) + " / " + str((K[1]-J[1])))
     print("[ERROR] *hl1 scientist scream*")
-    exit(0)
-
+    RC_Line2 = math.inf
 print(RC_Line2)
 
 # Offset/Translatie uitrekenen.
@@ -87,3 +93,21 @@ b = [JKOffset,IEOffset]
 solution = np.linalg.lstsq(a,b,rcond=None)
 print("Position of Solution: " + str(solution[0]))
 # The solution is in this case the position of the corner.
+
+# Calculating the middle of the square through this corner.
+# Move with a magnitude of half the length along line 1 or 2.
+# For the actual ordeal, this will be 95mm.
+travel = calcMag(ExpectedCorners[0],ExpectedCorners[1]) / 2
+angle = math.atan(RC_Line1)
+delta = [round(math.cos(angle)*travel,10),round(math.sin(angle)*travel,10)]
+stepOne = [solution[0][0]+delta[0],solution[0][1]+delta[1]]
+print(stepOne)
+# Due to current setup, we can use RC_Line2 as the 90 degree rotation.
+angle = math.atan(RC_Line2)
+print(math.degrees(angle))
+delta = [round(math.sin(angle)*travel,10),round(math.cos(angle)*travel,10)]
+print(delta)
+Centre = [stepOne[0]+delta[0],stepOne[1]+delta[1]]
+print(Centre)
+
+# Centrepoint has been found.
