@@ -1,49 +1,65 @@
 import math
 import numpy as np
 
-# SIDES_LENGTH = 19.0
-# FIRST_CORNER = [0,2]
-# DELTA = [1,1]
+# Define division warning as error.
+np.seterr(divide = 'raise')
 
-## Temporarely disabled due to accuracy concerns: By only using one point, any and all faults are multiplied.
-# def getSquareFromCorner(delta,position,sidelength):
-#     x1,y1 = position[0],position[1]
-#     delta = delta[1],-delta[0]
-#     x2,y2 = x1+(delta[0]*sidelength),y1+(delta[1]*sidelength)
-#     delta = delta[1],-delta[0]
-#     x3,y3 = x2+(delta[0]*sidelength),y2+(delta[1]*sidelength)
-#     delta = delta[1],-delta[0]
-#     x4,y4 = x3+(delta[0]*sidelength),y3+(delta[1]*sidelength)
-#     return [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
+# Which testset to use. (1,2,3,4)
+TESTSET = 4
 
-#print(getSquareFromCorner(DELTA,FIRST_CORNER,SIDES_LENGTH))
+# Digital object positions to determine offsets.
+DigitalCentre = [2,2] # Needed component. (Value can be taken from RoboDK export.)
+DigitalCorners = [[-1,-1],[-1,1],[1,1],[1,-1]] # Not needed, used for initial debugging.
+DigitalAngle = math.radians(90) # Needed component. (Value can be taken from RoboDK export.)
+
 
 def calcMag(point1,point2):
     return math.sqrt(((float(point2[0])-float(point1[0]))**2) + ((float(point2[1])-float(point1[1]))**2))
 
 
-# T2 - Expected positions into measurements.
-xp1 = [-1,1]
-xp2 = [1,1]
-xp3 = [1,-1]
-xp4 = [-1,-1]
-xcenter = [0,0]
+# # Test set 1.
+if TESTSET == 1:
 
-# This is the default test set, these measurements point to a s
-J = [0.4104146877838, 0.4104146877838]
-K = [0.7506960155965, 0.7506960155965]
-I = [-0.6220664717211, 0.6220664717211]
-ExpectedCorners = [[-1,1],[0,2],[1,1],[0,0]]
-ExpectedCentre = [0,1]
+    J = [0.4104146877838, 0.4104146877838]
+    K = [0.7506960155965, 0.7506960155965]
+    I = [-0.6220664717211, 0.6220664717211]
+    ExpectedCorners = [[-1,1],[0,2],[1,1],[0,0]]
+    ExpectedCentre = [0,1]
 
-MeasuredCorner = "BottomLeft"
+    MeasuredCorner = "BottomLeft"
 
+elif TESTSET == 2:
+
+    # Test set 2.
+    J = [6.6248271655433,6.9167818896378]
+    K = [7.5053126404265,6.329791573049]
+    I = [5.5906334685221,8.8859502027831]
+    ExpectedCorners = [[7,11],[10,9],[8,6],[5,8]]
+    ExpectedCentre = [7.5,8.5]
+
+    MeasuredCorner = "BottomLeft"
+
+elif TESTSET == 3:
+
+    # Test set 3.
+    J = [-4.1099613345214,4.8900386654786]
+    K = [-4.4103326029272,4.5896673970728]
+    I = [-5.6325547091728,4.6325547091728]
+    ExpectedCorners = [[-5,8],[-3,6],[-5,4],[-7,6]]
+    ExpectedCentre = [-5,6]
+
+    MeasuredCorner = "BottomLeft"
+
+elif TESTSET == 4:
+    J = [-0.5,-1]
+    K = [0.5,-1]
+    I = [-1,0.44]
+    ExpectedCorners = [[-1,-1],[-1,1],[1,1],[1,-1]]
+    ExpectedCentre = [0,0]
+    MeasuredCorner = "BottomLeft"
 # # This is a erroring test set: Here, one of the measured lines is perfectly straight, following x=y*0.
-# # This causes issues when trying to calculate a coefficient, as this causes a division by 0 error. (It attempts to create a infinitely large coefficient, as it's a straight line up.)
-# J = [-0.5,-1]
-# K = [0.5,-1]
-# I = [-1,0.44]
-# ExpectedCorners = [[-1,-1],[-1,1],[1,1],[1,-1]]
+# # At the current time, the function used to solve the two lines into a point cannot handle a inf (Infinite number) as input.
+
 
 # Calculating the first coefficient.
 RC_Line1 = (K[1]-J[1])/(K[0]-J[0])
@@ -75,7 +91,6 @@ except ZeroDivisionError as err:
     print("[ERROR] Calculation done: RC_Line2 = -1 * "+ str((K[0]-J[0])) + " / " + str((K[1]-J[1])))
     print("[ERROR] *hl1 scientist scream*")
     RC_Line2 = math.inf
-print(RC_Line2)
 
 # Offset/Translatie uitrekenen.
 IEOffset = I[1] - (I[0]*RC_Line2)
@@ -90,9 +105,24 @@ print("-----------")
 
 a = [[-RC_Line1,1],[-RC_Line2,1]]
 b = [JKOffset,IEOffset]
-solution = np.linalg.lstsq(a,b,rcond=None)
+try:
+    solution = np.linalg.lstsq(a,b,rcond=None)
+except Exception as err:
+    if err.args[0]=="SVD did not converge in Linear Least Squares":
+        print("[ERROR] SVD Did not converge, assuming one RC is infinite.")
+        if RC_Line1==math.inf:
+            solution = [K[0],I[1]],[]
+        elif RC_Line2==math.inf:
+            solution = [I[0],K[1]],[]
+        else:
+            print("[ERROR] Unable to fix, exiting.")
+            exit(1)
+    else:
+        exit(1)
+
 print("Position of Solution: " + str(solution[0]))
 # The solution is in this case the position of the corner.
+Corner = solution[0]
 
 # Calculating the middle of the square through this corner.
 # Move with a magnitude of half the length along line 1 or 2.
@@ -100,14 +130,55 @@ print("Position of Solution: " + str(solution[0]))
 travel = calcMag(ExpectedCorners[0],ExpectedCorners[1]) / 2
 angle = math.atan(RC_Line1)
 delta = [round(math.cos(angle)*travel,10),round(math.sin(angle)*travel,10)]
-stepOne = [solution[0][0]+delta[0],solution[0][1]+delta[1]]
-print(stepOne)
+stepOne = [round(Corner[0]+delta[0],10),round(Corner[1]+delta[1],10)]
+print("-EK-1-")
+print("Corner: "+str(Corner))
+print("Travel: "+str(travel))
+print("Angle: " + str(math.degrees(angle)))
+print("Delta: " + str(delta))
+print("Step position: " + str(stepOne))
+print("------")
+
 # Due to current setup, we can use RC_Line2 as the 90 degree rotation.
 angle = math.atan(RC_Line2)
-print(math.degrees(angle))
-delta = [round(math.sin(angle)*travel,10),round(math.cos(angle)*travel,10)]
-print(delta)
-Centre = [stepOne[0]+delta[0],stepOne[1]+delta[1]]
-print(Centre)
+if angle<0:
+    delta = [round(math.sin(angle)*travel,10),round(math.cos(angle)*travel,10)] # Works for test set 1 and 3
+else:
+    delta = [round(math.cos(angle)*travel,10),round(math.sin(angle)*travel,10)] # Works for test set 2 and 4.
 
-# Centrepoint has been found.
+# Dot product time?
+# D(a,b) = a.x * b.x + a.y * b.y
+# R = D(A,(0,1))
+
+
+Centre = [round(stepOne[0]+delta[0],10),round(stepOne[1]+delta[1],10)]
+print("-EK-2-")
+print("Travel: "+str(travel))
+print("Angle: " + str(math.degrees(angle)))
+print("Delta: " + str(delta))
+print("Step position: " + str(Centre))
+print("------")
+
+print("------------Final Data------------")
+print("Centre: " + str(Centre) + "\t| Expected Centre: " + str(ExpectedCentre))
+print("Corner: " + str(Corner) + "\t| Expected Corners: " + str(ExpectedCorners))
+print("Testset: " + str(TESTSET))
+print("----------------------------------")
+
+
+# Calculate angle of vector between corner and middle against the Y-axis.
+try:
+    RC_CentreToCorner = (Centre[1]-Corner[1])/(Centre[0]-Corner[0])
+except FloatingPointError as err:
+    RC_CentreToCorner = math.inf
+angle = math.atan(RC_CentreToCorner)
+print("Hoek via atan: " + str(math.degrees(angle)))
+
+# Calculate offsets.
+Positional_Offset = [Centre[0]-DigitalCentre[0],Centre[1]-DigitalCentre[1]]
+Rotational_Offset = angle-DigitalAngle
+
+print("Positional Offset: " + str(Positional_Offset))
+print("Rotational Offset: " + str(math.degrees(Rotational_Offset)))
+
+# With these two values, one should be able to modify the centre point of the exported path (by moving and rotating said point), making the generated path automatically move with it.
