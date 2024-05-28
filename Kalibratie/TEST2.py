@@ -5,12 +5,12 @@ import numpy as np
 np.seterr(divide = 'raise')
 
 # Which testset to use. (1,2,3,4)
-TESTSET = 4
+TESTSET = 3
 
 # Digital object positions to determine offsets.
-DigitalCentre = [2,2] # Needed component. (Value can be taken from RoboDK export.)
+DigitalCentre = [0,0] # Needed component. (Value can be taken from RoboDK export.)
 DigitalCorners = [[-1,-1],[-1,1],[1,1],[1,-1]] # Not needed, used for initial debugging.
-DigitalAngle = math.radians(90) # Needed component. (Value can be taken from RoboDK export.)
+DigitalAngle = math.radians(45) # Needed component. (Value can be taken from RoboDK export.)
 
 
 def calcMag(point1,point2):
