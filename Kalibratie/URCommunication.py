@@ -41,7 +41,7 @@ def greenLightUR(target):
     cGreenLight.close()
     time.sleep(1)
 
-def connectReadWrite(target,in_port):
+def connectReadWrite(target=IP_UR,in_port=PORT_RECIEVE):
     """!
     A function to connect both a output and input socket from the remote device to the UR/Polyscope.
 
@@ -196,14 +196,14 @@ def read(read_conn):
         return 1
     return input
 
-def closeConnection(conn,write = False):
+def closeConnection(conn,write = True):
     """!
     A function to shut down a socket connection.
 
     If the connection is writable, the 2nd arg can be set to true to write the "end_interpreter()" command.
 
     \param [in] conn The Connection to shut down.
-    \param [in] write A boolean that deter('responder')mines wether a connection can be written to, defaults to False.
+    \param [in] write A boolean that deter('responder')mines wether a connection can be written to, defaults to True.
 
     \retval State Returns 0 if succeeded.
     """
