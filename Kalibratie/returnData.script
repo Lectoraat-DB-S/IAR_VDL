@@ -1,0 +1,50 @@
+# URScript code
+
+# Configs
+IP_PC  = "192.168.0.16" # The IP of the PC/Laptop the robot will be connected to.
+PORT_SENDING = 30022 # The port to send returning data to. Make sure this value is the same as in the python script.
+
+def reply(command):
+    output = command # For some reason, a argument provided that isn't any specific type of variable, can just be executed as code.
+    socket_send_string(output,"responder") # Send output back over reading socket, with the output of the function as utf8 string.
+end
+
+def run_sync(command):
+    output = command
+    socket_send_string("exec_done","responder")
+end
+
+def measure_point():
+  curPose = get_actual_tcp_pose()
+  force_mode(curPose, [0,0,1,0,0,0], [0,0,5,0,0,0],2,[0.5,0.5,2,0.5,0.5,0.5])
+  detect = False
+  while not detect:
+    detect = get_digital_in(7)
+    sync()
+  end
+  end_force_mode()
+  socket_send_string("found","responder")
+end
+
+def measure_edge(direction,power):
+  basePose = p[0,0,0,0,0,0]
+
+  force_mode(basePose, direction, power,2,[0.5,0.5,2,0.5,0.5,0.5])
+  detect = True
+  while detect:
+    detect = get_digital_in(7)
+    sync()
+  end
+  end_force_mode()
+  socket_send_string("found","responder")
+  sleep(0.5)
+  currentPose = get_actual_tcp_pose()
+  socket_send_string(currentPose,"responder")
+end
+
+# Starting section.
+interpreter_mode() # Wait for greenlight from PC.
+socket_open(IP_PC,PORT_SENDING,"responder") # Open the responding/reading socket.
+
+interpreter_mode() # Wait for shutdown.
+socket_close("responder")
