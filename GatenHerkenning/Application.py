@@ -6,11 +6,12 @@ from Hole import Hole
 
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Fuse
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
-from OCC.Core.gp import gp_Trsf, gp_Vec, gp_Ax2, gp_Pnt, gp_Dir, gp_Ax3
+from OCC.Core.gp import gp_Trsf, gp_Vec, gp_Ax2, gp_Pnt, gp_Dir, gp_Ax3, gp_Quaternion
 from OCC.Display import OCCViewer
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
 from vtkmodules import qt
+from OCC.Core.V3d import V3d_Yneg
 
 from StepModel import StepModel
 
@@ -23,6 +24,18 @@ from OCC.Core.Graphic3d import Graphic3d_NOM_ALUMINIUM
 load_backend("pyqt5")
 
 import OCC.Display.qtDisplay as qtDisplay
+
+
+class ClickableWidget(QWidget):
+    clicked = pyqtSignal(int)  # Signal now emits an integer index
+
+    def __init__(self, index, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index = index  # Store the index
+
+    def mousePressEvent(self, event):
+        self.clicked.emit(self.index)  # Emit the index when clicked
+        super().mousePressEvent(event)
 
 
 class Application(QDialog):
@@ -78,17 +91,21 @@ class Application(QDialog):
         load.clicked.connect(self.button_load)
         layout.addWidget(load)
 
-        eras = QPushButton("Erase Box", self)
-        eras.clicked.connect(self.erase_shape)
-        layout.addWidget(eras)
+        # eras = QPushButton("Erase Box", self)
+        # eras.clicked.connect(self.erase_shape)
+        # layout.addWidget(eras)
+        #
+        # move1 = QPushButton("Move to position 1", self)
+        # move1.clicked.connect(self.move1)
+        # layout.addWidget(move1)
+        #
+        # move2 = QPushButton("Move to position 2", self)
+        # move2.clicked.connect(self.move2)
+        # layout.addWidget(move2)
 
-        move1 = QPushButton("Move to position 1", self)
-        move1.clicked.connect(self.move1)
-        layout.addWidget(move1)
-
-        move2 = QPushButton("Move to position 2", self)
-        move2.clicked.connect(self.move2)
-        layout.addWidget(move2)
+        hole_widget = self.create_hole_widget(Hole(("X", "Y", "Z"), ("rX", "rY", "rZ"), "Size", "Depth"), "ID", True)
+        hole_widget.layout().setContentsMargins(0, 0, 15, 0)
+        layout.addWidget(hole_widget)
 
         self.scrollArea = QScrollArea(self)
         self.scrollArea.setWidgetResizable(True)
@@ -103,7 +120,7 @@ class Application(QDialog):
 
         layout.addWidget(self.scrollArea)
 
-        self.create_scroll_list()
+        # self.create_scroll_list()
 
         # layout.addStretch(1)
         self.verticalGroupBox.setLayout(layout)
@@ -125,19 +142,25 @@ class Application(QDialog):
             # remove it from the gui
             widget_to_remove.setParent(None)
 
-        self.holes = []
+        # self.holes = []
 
-        for x in range(30):
-            self.holes.append(Hole((random.randint(0, 100), random.randint(0, 100), random.randint(0, 100)),
-                                   (random.randint(0, 100), random.randint(0, 100), random.randint(0, 100)),
-                                   random.randint(2, 12), random.randint(2, 12)))
+        # for x in range(30):
+        #     self.holes.append(Hole((random.randint(0, 100), random.randint(0, 100), random.randint(0, 100)),
+        #                            (random.randint(0, 100), random.randint(0, 100), random.randint(0, 100)),
+        #                            random.randint(2, 12), random.randint(2, 12)))
 
-        for hole in self.holes:
-            hole_widget = self.create_hole_widget(hole)
+        for i, hole in enumerate(self.step.holes):
+            hole_widget = self.create_hole_widget(hole, i)
+            hole_widget.clicked.connect(lambda index=i: self.hole_clicked(index))
             self.scrollAreaLayout.addWidget(hole_widget)
 
-    def create_hole_widget(self, hole):
-        hole_widget = QWidget(self)
+    def hole_clicked(self, index):
+        print(f"Hole clicked: {index}")
+        self.preview_position(*self.step.holes[index].location, *self.step.holes[index].direction)
+        # Perform actions based on the clicked index
+
+    def create_hole_widget(self, hole, index, header=False):
+        hole_widget = ClickableWidget(index, self)
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -149,27 +172,46 @@ class Application(QDialog):
                         border-radius: 3px;
                     """
 
+        common_style_dark = """
+                            background-color: lightgray;
+                            border: 1px solid gray;
+                            padding: 2px;
+                            border-radius: 3px;
+                        """
+
         widgets = [
-            QLabel(f"<b> X</b>"),
+            QLabel(f"Hole: {index}"),
             QLabel(f"{hole.location[0]}"),
-            QLabel(f"<b>Y</b>"),
             QLabel(f"{hole.location[1]}"),
-            QLabel(f"<b>Z</b>"),
             QLabel(f"{hole.location[2]}"),
-            QLabel(f"<b>rX</b>"),
             QLabel(f"{hole.direction[0]}"),
-            QLabel(f"<b>rY</b>"),
             QLabel(f"{hole.direction[1]}"),
-            QLabel(f"<b>rZ</b>"),
             QLabel(f"{hole.direction[2]}")
         ]
 
-        direction_flip_button = QPushButton("Flip")
-        direction_flip_button.clicked.connect(lambda: self.flip_direction)
+        if header:
+            widgets.append(QLabel(f"Insert type"))
 
         for widget in widgets:
-            widget.setStyleSheet(common_style)
-            layout.addWidget(widget)
+            if index == "ID":
+                widget.setStyleSheet(common_style)
+                layout.addWidget(widget)
+            elif index % 2 == 0:
+                widget.setStyleSheet(common_style_dark)
+                layout.addWidget(widget)
+            else:
+                widget.setStyleSheet(common_style)
+                layout.addWidget(widget)
+            # if index != "Hole ID":
+            #     if int(index) % 2 == 0:
+            #         widget.setStyleSheet
+            if not header:
+                menu_select_type.addItems(hole.insert_types)
+                layout.addWidget(menu_select_type)
+
+        direction_flip_button = QPushButton("Flip")
+        direction_flip_button.clicked.connect(lambda: self.flip_direction)
+        layout.addWidget(direction_flip_button)
 
         hole_widget.setLayout(layout)
         return hole_widget
@@ -214,7 +256,20 @@ class Application(QDialog):
         cone = BRepPrimAPI_MakeCone(cone_position, cone_radius, 0, cone_height).Shape()
 
         transformed_cone = BRepBuilderAPI_Transform(cone, trsf, True).Shape()
-        self.preview_cone = self.display.DisplayShape(transformed_cone, color="green")[0]
+        self.preview_cone = self.display.DisplayShape(transformed_cone, color="green")[0]\
+
+        # Adjust camera view to fit the displayed objects
+        self.display.FitAll()
+        #
+        # # Set the view orientation based on the cone's rotation
+        # angle_x = -ry * 180 / 3.14159
+        # angle_y = rz * 180 / 3.14159
+        # angle_z = rx * 180 / 3.14159
+        #
+        # self.display.View.SetTwist(angle_z)
+        # self.display.View.SetUp(V3d_Yneg)  # Set the up direction as negative Y axis
+        #
+        # self.display.View.Redraw()
 
     def move1(self):
         if self.index < len(self.step.holes) - 1:
