@@ -21,7 +21,7 @@ IP_UR = "192.168.0.13"
 ## Custom port used in returnData.script file.
 PORT_RECIEVE = 30022
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 def greenLightUR(target):
     """!
@@ -142,15 +142,15 @@ def syncWrite(command,write_conn,read_conn,timeout=10):
             return 2
     
     try:
-        response = read_conn.recv(STD_BUFFER_SIZE).decode("utf8").startswith("exec_done")
-        if not response:
+        response = read_conn.recv(STD_BUFFER_SIZE).decode("utf8")
+        if not response.startswith("exec_done"):
             raise ValueError()
     except TimeoutError:
         print("[ERROR] Read timed out.")
         read_conn.settimeout(timeout)
         return 1
     except ValueError:
-        print("[ERROR] Recieved signal not expected.")
+        print("[ERROR] Recieved signal not expected:" + str(response))
         read_conn.settimeout(timeout)
         return 3
     read_conn.settimeout(timeout)
@@ -203,11 +203,7 @@ def closeConnection(conn,write = False):
     If the connection is writable, the 2nd arg can be set to true to write the "end_interpreter()" command.
 
     \param [in] conn The Connection to shut down.
-    \param [in] write A boolean that deter('responder')mines wether a
-    asyncWrite("end_interpreter()",write_conn)
-    write_conn.shutdown(socket.SHUT_RD)
-    read_conn.shutdown(socket.SHUT_RD)
-    write_conn.close() connection can be written to, defaults to False.
+    \param [in] write A boolean that deter('responder')mines wether a connection can be written to, defaults to False.
 
     \retval State Returns 0 if succeeded.
     """
@@ -228,3 +224,13 @@ def closeReadWrite(write_conn,read_conn):
     write_conn.close()
     read_conn.close()
     return 0
+
+def poseToValues(pose):
+    # Take apart the values.
+    pose = pose.split(",")
+    # Remove unusual parts of string.
+    pose[0] = pose[0].removeprefix("p[")
+    pose[5] = pose[5].removesuffix("]")
+    # Convert strings to float.
+    [float(i) for i in pose]
+    return pose

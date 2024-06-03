@@ -11,22 +11,28 @@ measuredEdgeCounter = 0
 def MeasurePoint(write_conn,read_conn,count=measuredCounter):
     global measuredCounter
     curPose = urc.readWrite("get_actual_tcp_pose()",write_conn,read_conn)
-    print("[COBOT] Starting Position is: " + curPose)
+    # print("[COBOT] Starting Position is: " + curPose)
+    time.sleep(0.1)
     urc.asyncWrite("measure_point()",write_conn)
-    while urc.read(read_conn) == 1:
-        print("Waiting...")
-    print("Done")
+    finished = False
+    while finished == False:
+        try:
+            finished = read_conn.recv(urc.STD_BUFFER_SIZE).decode("utf8").startswith("found")
+        except TimeoutError:
+            print("[COBOT] Time out, repeating.")
+    # print("[COBOT] Found surface.")
     time.sleep(1)
     measuredPoint = urc.readWrite("get_actual_tcp_pose()",write_conn,read_conn)
-    print("[COBOT] Measured position is: " + measuredPoint)
+    time.sleep(0.5)
+    # print("[COBOT] Measured position is: " + measuredPoint)
     urc.syncWrite("movel(" + curPose + ",a=1.2,v=0.25,t=0,r=0)",write_conn,read_conn)
 
-    # Format the pose (string) variable into a array of smaller strings for each value.
-    startPose = (curPose.replace("p[",'')).split(",")
-    endPose = (measuredPoint.replace("p[",'')).split(",")
+    # # Format the pose (string) variable into a array of smaller strings for each value.
+    # startPose = (curPose.replace("p[",'')).split(",")
+    # endPose = (measuredPoint.replace("p[",'')).split(",")
 
-    # Calculate the Magnitude of the made motion.
-    Magnitude = math.sqrt(((float(endPose[0])-float(startPose[0]))**2) + ((float(endPose[1])-float(startPose[1]))**2) + ((float(endPose[2])-float(startPose[2]))**2))
+    ## Calculate the Magnitude of the made motion.
+    # Magnitude = math.sqrt(((float(endPose[0])-float(startPose[0]))**2) + ((float(endPose[1])-float(startPose[1]))**2) + ((float(endPose[2])-float(startPose[2]))**2))
 
     # Attempt to write the measured point to storage. This is appended, regardless if the file already contains a point with the same name.
     try:
@@ -39,7 +45,7 @@ def MeasurePoint(write_conn,read_conn,count=measuredCounter):
     except Exception as err:
         print(err)
 
-    return Magnitude,measuredPoint
+    return measuredPoint
 
 def MeasureEdge(write_conn,read_conn,direction,power):
     global measuredEdgeCounter

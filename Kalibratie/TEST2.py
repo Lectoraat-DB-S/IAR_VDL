@@ -5,7 +5,7 @@ import numpy as np
 np.seterr(divide = 'raise')
 
 # Which testset to use. (1,2,3,4)
-TESTSET = 3
+TESTSET = 1
 
 # Digital object positions to determine offsets.
 DigitalCentre = [0,0] # Needed component. (Value can be taken from RoboDK export.)

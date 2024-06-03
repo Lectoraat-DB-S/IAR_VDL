@@ -21,6 +21,6 @@ write,read = urc.connectReadWrite(IP_UR,PORT_RECIEVE)
 # command = "force_mode("+pose+", "+direction+","+power+",2,[0.5,0.5,2,0.5,0.5,0.5])"
 # urc.asyncWrite(command,write,read)
 
-print(urc.readWrite("get_actual_tcp_pose()",write,read))
+print(urc.readWrite("get_actual_joint_positions()",write,read))
 
 urc.closeReadWrite(write,read)

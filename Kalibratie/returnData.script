@@ -26,18 +26,10 @@ def measure_point():
   socket_send_string("found","responder")
 end
 
-def measure_edge():
+def measure_edge(direction,power):
   basePose = p[0,0,0,0,0,0]
-  currentPose = get_actual_tcp_pose()
 
-  # DEBUG
-  socket_send_string(basePose,"responder")
-  sleep(1.0)
-  socket_send_string(currentPose,"responder")
-  sleep(0.5)
-  # -----
-
-  force_mode(basePose, [0,1,0,0,0,0], [0,5,0,0,0,0],2,[0.5,0.5,2,0.5,0.5,0.5])
+  force_mode(basePose, direction, power,2,[0.5,0.5,2,0.5,0.5,0.5])
   detect = True
   while detect:
     detect = get_digital_in(7)
@@ -45,6 +37,9 @@ def measure_edge():
   end
   end_force_mode()
   socket_send_string("found","responder")
+  sleep(0.5)
+  currentPose = get_actual_tcp_pose()
+  socket_send_string(currentPose,"responder")
 end
 
 # Starting section.
