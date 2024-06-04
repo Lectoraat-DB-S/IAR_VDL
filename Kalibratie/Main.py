@@ -69,6 +69,11 @@ def DoCalibration():
     measurement_3 = st.MeasurePoint(write,read,2)
     urc.syncWrite("set_tcp("+ TCP_SCREWDRIVER +")",write,read) 
 
+    urc.syncWrite("movel("+MeasurementPoses[3]+")",write,read)
+    urc.syncWrite("set_tcp("+ TCP_SENSOR +")",write,read)
+    measurement_3 = st.MeasurePoint(write,read,3)
+    urc.syncWrite("set_tcp("+ TCP_SCREWDRIVER +")",write,read)
+
     # Returning back to inbetween position.
     urc.syncWrite("movel("+InbetweenPoses[0]+")",write,read)
 
@@ -81,10 +86,12 @@ def DoCalibration():
     measurement_1 = urc.poseToValues(measurement_1)
     measurement_2 = urc.poseToValues(measurement_2)
     measurement_3 = urc.poseToValues(measurement_3)
+    measurement_4 = urc.poseToValues(measurement_4)
 
     a = [float(measurement_1[0]),float(measurement_1[1]),float(measurement_1[5])]
     b = [float(measurement_2[0]),float(measurement_2[1]),float(measurement_2[5])]
     c = [float(measurement_3[0]),float(measurement_3[1]),float(measurement_3[5])]
+    d = [float(measurement_4[0]),float(measurement_4[1]),float(measurement_4[5])]
     out = cal.CalculateOffsets([a,b,c],DigitalMiddlePoint)
     # print("Debug: " + str(out[0]) + ", " + str(out[1]) + ", " + str(math.degrees(out[2])))
     return [out[0]-0.0039,out[1]-0.019,out[2]]

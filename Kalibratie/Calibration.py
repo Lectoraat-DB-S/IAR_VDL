@@ -16,49 +16,38 @@ SIDELENGTH = 0.19
 def CalculateMagnitude(point_1,point_2):
     return math.sqrt(((float(point_2[0])-float(point_1[0]))**2) + ((float(point_2[1])-float(point_1[1]))**2))
 
-def CalculateOffsets(measurement_points_abc,digital_middlepoint):
+def CalculateOffsets(measurement_points_abcd,digital_middlepoint):
     """ A function to calculate the offsets of a square drawn along the 3 measurement points, compared to the digital middlepoint.
     
     \param [in] measurement_points_abc A array of 3 points, only containing their x,y and rz values.
     \param [in] digital_middlepoint A array containing the x,y,z,rx,ry and rz values of the digital middlepoint. (Can be made by turning the pose-string into values with "urc.poseToValues()")
     """
-    A = measurement_points_abc[0] #J
-    B = measurement_points_abc[1] #K
-    C = measurement_points_abc[2] #I
+    A = measurement_points_abcd[0]
+    B = measurement_points_abcd[1] 
+    C = measurement_points_abcd[2] 
+    D = measurement_points_abcd[3] 
 
-    # Calculating the first coefficient and offset, giving us the full formula of the first line.
-    coefficient_1 = (B[1]-A[1])/(B[0]-A[0])
-    offset_1 = A[1] - (A[0] * coefficient_1)
+    # See Mark's feedback, using lstsq to calculate the lines instead of manually.
+    # Put the point data together in arrays.
+    measurements_line1_x = [A[0],B[0]]
+    measurements_line2_x = [C[0],D[0]]
+    measurements_line1_y = [A[1],B[1]]
+    measurements_line2_y = [C[1],D[1]]
 
-    # Calculating the second coefficient and offset, derived from the first formula.
-    try:
-        coefficient_2 = -1*(B[0]-A[0])/(B[1]-A[1])
-    except ZeroDivisionError as err:
-        coefficient_2 = math.inf
+    # Put x points of line 1 and 2 in a vertical matrix, pairing each with a 1.
+    A1 = np.vstack([measurements_line1_x,np.ones(len(measurements_line1_x))]).T
+    A2 = np.vstack([measurements_line2_x,np.ones(len(measurements_line2_y))]).T
+    m1,c1 = np.linalg.lstsq(A1,measurements_line1_y,rcond=None)[0]
+    m2,c2 = np.linalg.lstsq(A2,measurements_line2_y,rcond=None)[0]
 
-    # Calculating the offset.
-    if coefficient_2 == math.inf:
-        offset_2 = C[0]
-    else:
-        offset_2 = C[1] - (C[0]*coefficient_2)
-    
-    try:
-        lstsq = np.linalg.lstsq([[-coefficient_1,1],[-coefficient_2,1]],[offset_1,offset_2],rcond=None)
-    except Exception:
-        if coefficient_1==math.inf:
-            lstsq = [B[0],C[1]],[]
-        elif coefficient_2==math.inf:
-            lstsq = [C[0],B[1]],[]
-        else:
-            print("[ERROR] Error in has no predefined solution, exiting.")
-            exit(1)
-    corner_point = lstsq[0]
+    x_intersect = (c2-c1)/(m1-m2)
+    corner_point = [x_intersect,m1*x_intersect+c1]
 
     # Calculating the middle of the square through the previously calculated lines.
     # First step, along Line 1.
     travel_length = SIDELENGTH/2
 
-    angle_1 = math.atan(coefficient_1)
+    angle_1 = math.atan(m1)
     if CORNER=="TopRight":
         if angle_1<0:
             delta_1 = [1*(math.cos(angle_1)*travel_length),1*(math.sin(angle_1)*travel_length)]
@@ -70,7 +59,7 @@ def CalculateOffsets(measurement_points_abc,digital_middlepoint):
     centre_point = [corner_point[0]+delta_1[0],corner_point[1]+delta_1[1]]
 
     # 2nd step, along Line 2.
-    angle_2 = math.atan(coefficient_2)
+    angle_2 = math.atan(m2)
 
     if CORNER=="TopRight":
         delta_2 =  [-1*(math.cos(angle_2)*travel_length),1*(math.sin(angle_2)*travel_length),10]
