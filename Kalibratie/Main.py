@@ -18,6 +18,8 @@ TCP_SENSOR = TCP[1]
 
 MeasurementPoses = ["[-0.690796,-1.46479,2.05802,-0.585906,-0.702562,0.0167929]","[-0.755371,-1.43441,2.02297,-0.581487,-0.767256,0.0174955]","[-0.700706,-0.759412,1.32686,-0.6222,0.853325,3.17627]"]
 InbetweenPoses = ["[-1.0023,-1.04478,1.54754,-0.448062,-0.0243877,1.52694]"]
+DigitalMiddlePoint = urc.poseToValues("p[-1.011832,0.047732,-0.0871,0.0,0.0,0.0]")
+print(DigitalMiddlePoint)
 
 urc.greenLightUR(IP_UR)
 write,read = urc.connectReadWrite(IP_UR,PORT_RECIEVE)
@@ -83,7 +85,7 @@ def DoCalibration():
     a = [float(measurement_1[0]),float(measurement_1[1]),float(measurement_1[5])]
     b = [float(measurement_2[0]),float(measurement_2[1]),float(measurement_2[5])]
     c = [float(measurement_3[0]),float(measurement_3[1]),float(measurement_3[5])]
-    out = cal.CalculateOffsets([a,b,c],)
+    out = cal.CalculateOffsets([a,b,c],DigitalMiddlePoint)
     # print("Debug: " + str(out[0]) + ", " + str(out[1]) + ", " + str(math.degrees(out[2])))
     return [out[0]-0.0039,out[1]-0.019,out[2]]
 
