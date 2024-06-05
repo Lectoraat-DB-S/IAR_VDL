@@ -68,10 +68,9 @@ def CalculateOffsets(measurement_points_abcd,digital_middlepoint):
         exit(1)
     centre_point = [round(centre_point[0]+delta_2[0],10),round(centre_point[1]+delta_2[1],10)]
 
-    try:
-        diagonal = (centre_point[1]-corner_point[1])/(centre_point[0]-corner_point[0])
-    except FloatingPointError:
-        diagonal = math.inf
+    A3 = np.vstack([[centre_point[0],corner_point[0]],np.ones(2)]).T
+    m3,c3 = np.linalg.lstsq(A3,[centre_point[1],corner_point[1]],rcond=None)
+    diagonal = math.atan(m3)
     rz_offset = math.atan(diagonal)
 
     # Output is X, Y and rZ in Radians. [X,Y,rZ]
