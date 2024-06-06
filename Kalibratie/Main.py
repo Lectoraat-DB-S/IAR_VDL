@@ -71,20 +71,30 @@ def DoCalibration(write_conn,read_conn):
     d = [float(measurement_4[0]),float(measurement_4[1]),float(measurement_4[5])]
     out = cal.CalculateOffsets([a,b,c,d],DigitalMiddlePoint)
     # print("Debug: " + str(out[0]) + ", " + str(out[1]) + ", " + str(math.degrees(out[2])))
-    return [out[0]-0.0039,out[1]-0.019,out[2]]
+    return [out[0],out[1],out[2]]
 
 # Start of runtime code.
 
 urc.greenLightUR(IP_UR)
 write,read = urc.connectReadWrite(IP_UR,PORT_RECIEVE)
 
+r=[[],[],[],[],[],[],[]]
+
 # Main body.
-
-print("[DEBUG] Offset values: "+ str(DoCalibration(write,read)))
-print("[DEBUG] Offset values: "+ str(DoCalibration(write,read)))
-print("[DEBUG] Offset values: "+ str(DoCalibration(write,read)))
-print("[DEBUG] Offset values: "+ str(DoCalibration(write,read)))
-
+r[0] = DoCalibration(write,read)
+r[1] = DoCalibration(write,read)
+r[2] = DoCalibration(write,read)
+r[3] = DoCalibration(write,read)
+r[4] = DoCalibration(write,read)
+r[5] = DoCalibration(write,read)
+r[6] = DoCalibration(write,read)
+print("[DEBUG] Offset values: "+ str(r[0]))
+print("[DEBUG] Offset values: "+ str(r[1]))
+print("[DEBUG] Offset values: "+ str(r[2]))
+print("[DEBUG] Offset values: "+ str(r[3]))
+print("[DEBUG] Offset values: "+ str(r[4]))
+print("[DEBUG] Offset values: "+ str(r[5]))
+print("[DEBUG] Offset values: "+ str(r[6]))
 
 urc.closeReadWrite(write,read)
 

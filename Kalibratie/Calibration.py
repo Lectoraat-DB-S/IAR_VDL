@@ -74,7 +74,7 @@ def CalculateOffsets(measurement_points_abcd,digital_middlepoint):
     # print(digital_middlepoint[5])
 
     # Output is X, Y and rZ in Radians. [X,Y,rZ]
-    offset_x_y_rz = [centre_point[0]-digital_middlepoint[0]+0.005257429383333275,centre_point[1]-digital_middlepoint[1]+0.022573803608333328,rz_offset-digital_middlepoint[5]]
+    offset_x_y_rz = [centre_point[0]-digital_middlepoint[0]+0.0032521844999999455,centre_point[1]-digital_middlepoint[1]+0.0015827895142857104,rz_offset-digital_middlepoint[5]]
 
     # Debugging section
     # print("--------Calibration Debug--------------")
