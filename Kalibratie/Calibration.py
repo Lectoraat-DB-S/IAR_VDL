@@ -3,10 +3,6 @@ import numpy as np
 
 np.seterr(divide='raise')
 
-# Variables, WIP - Move generic ones over to main.py.
-DigitalCentre = [0,0]
-DigitalAngle = math.radians(45)
-
 CORNER = "TopRight"
 
 # Length of the sides in m.
@@ -69,12 +65,16 @@ def CalculateOffsets(measurement_points_abcd,digital_middlepoint):
     centre_point = [round(centre_point[0]+delta_2[0],10),round(centre_point[1]+delta_2[1],10)]
 
     A3 = np.vstack([[centre_point[0],corner_point[0]],np.ones(2)]).T
-    m3,c3 = np.linalg.lstsq(A3,[centre_point[1],corner_point[1]],rcond=None)
+    m3,c3 = np.linalg.lstsq(A3,[centre_point[1],corner_point[1]],rcond=None)[0]
     diagonal = math.atan(m3)
-    rz_offset = math.atan(diagonal)
+    rz_offset = diagonal
+
+    ## Debug prints for angle.
+    # print(rz_offset)
+    # print(digital_middlepoint[5])
 
     # Output is X, Y and rZ in Radians. [X,Y,rZ]
-    offset_x_y_rz = [digital_middlepoint[0]-centre_point[0],digital_middlepoint[1]-centre_point[1],digital_middlepoint[5]-rz_offset]
+    offset_x_y_rz = [centre_point[0]-digital_middlepoint[0]+0.005257429383333275,centre_point[1]-digital_middlepoint[1]+0.022573803608333328,rz_offset-digital_middlepoint[5]]
 
     # Debugging section
     # print("--------Calibration Debug--------------")

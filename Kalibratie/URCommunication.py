@@ -5,6 +5,7 @@
 
 import socket
 import time
+import numpy as np
 
 # Configurable settings.
 ## Standard interpreter port, only change this if your Cobot needs a different port.
@@ -232,5 +233,5 @@ def poseToValues(pose):
     pose[0] = pose[0].removeprefix("p[")
     pose[5] = pose[5].removesuffix("]")
     # Convert strings to float.
-    [float(i) for i in pose]
-    return pose
+    posefloat = np.array(pose,dtype=np.float64)
+    return posefloat
