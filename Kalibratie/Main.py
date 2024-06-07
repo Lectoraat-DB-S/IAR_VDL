@@ -78,23 +78,9 @@ def DoCalibration(write_conn,read_conn):
 urc.greenLightUR(IP_UR)
 write,read = urc.connectReadWrite(IP_UR,PORT_RECIEVE)
 
-r=[[],[],[],[],[],[],[]]
-
 # Main body.
-r[0] = DoCalibration(write,read)
-r[1] = DoCalibration(write,read)
-r[2] = DoCalibration(write,read)
-r[3] = DoCalibration(write,read)
-r[4] = DoCalibration(write,read)
-r[5] = DoCalibration(write,read)
-r[6] = DoCalibration(write,read)
-print("[DEBUG] Offset values: "+ str(r[0]))
-print("[DEBUG] Offset values: "+ str(r[1]))
-print("[DEBUG] Offset values: "+ str(r[2]))
-print("[DEBUG] Offset values: "+ str(r[3]))
-print("[DEBUG] Offset values: "+ str(r[4]))
-print("[DEBUG] Offset values: "+ str(r[5]))
-print("[DEBUG] Offset values: "+ str(r[6]))
+Offset =  DoCalibration(write,read)
+print(Offset)
 
 urc.closeReadWrite(write,read)
 
