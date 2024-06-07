@@ -81,6 +81,7 @@ write,read = urc.connectReadWrite(IP_UR,PORT_RECIEVE)
 # Main body.
 Offset =  DoCalibration(write,read)
 print(Offset)
+print(math.degrees(Offset[2]))
 
 urc.closeReadWrite(write,read)
 
