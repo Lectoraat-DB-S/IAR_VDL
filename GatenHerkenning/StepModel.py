@@ -1,4 +1,6 @@
 import csv
+import os
+import shutil
 
 import numpy
 from OCC.Core.BRepAdaptor import BRepAdaptor_Surface, BRepAdaptor_Curve
@@ -12,18 +14,17 @@ from Hole import Hole
 
 
 class StepModel:
-    def __init__(self, directory):
+    def __init__(self, directory, name, filters):
         self.precision = 4
         self.shape = None
         self.holes = []
-        self.name = "Hole_list"
-
-        print("x")
+        self.filters = filters
+        self.name = name
 
         self.create_shape(directory)
         self.find_holes_in_step()
         self.remove_point_hole_bottom()
-        self.write_csv()
+        self.export_csv()
 
     def create_shape(self, directory):
         step_reader = STEPControl_Reader()
@@ -58,21 +59,39 @@ class StepModel:
         return new_point
 
     def remove_point_hole_bottom(self):
+        if not self.holes:
+            print("No holes to remove.")
+            return
+
         holes_to_remove = []
-        current_index = 0
 
-        for hole in self.holes:
-            current_index += 1
-            point = self.calculate_offset_point(hole.location + hole.direction, hole.depth)
+        for i, hole in enumerate(self.holes):
+            try:
+                point = self.calculate_offset_point(hole.location + hole.direction, hole.depth)
+            except Exception as e:
+                print(f"Error calculating offset point for hole {i}: {e}")
+                continue
 
-            for hole2 in self.holes:
-                if hole2.location == point:
-                    holes_to_remove.append(current_index)
+            for j, hole2 in enumerate(self.holes):
+                if j == i:
+                    continue  # Skip comparison with itself
+                try:
+                    distance = sum((point[k] - hole2.location[k]) ** 2 for k in range(len(point))) ** 0.5
+                except IndexError as e:
+                    print(f"Error comparing holes {i} and {j}: {e}")
+                    continue
+                if distance <= 1:
+                    break  # Don't remove the hole if it's within the range
+            else:
+                holes_to_remove.append(i)  # Append only if the inner loop completes without breaking
 
         for index in sorted(holes_to_remove, reverse=True):
-            del self.holes[index]
+            try:
+                del self.holes[index]
+            except IndexError as e:
+                print(f"Error removing hole at index {index}: {e}")
 
-        print("Found", len(self.holes), "holes.")
+        print("Remaining holes:", len(self.holes))
 
     def find_circles_attached_to_cylinder(self):
         circular_edges, surfaces = [], []
@@ -133,23 +152,50 @@ class StepModel:
                             round(curve_circle.Location().Y(), self.precision),
                             round(curve_circle.Location().Z(), self.precision))
 
-                direction = (-round(cylinder.Axis().Direction().X(), self.precision),
-                             -round(cylinder.Axis().Direction().Y(), self.precision),
-                             -round(cylinder.Axis().Direction().Z(), self.precision))
+                direction = (round(cylinder.Axis().Direction().X(), self.precision),
+                             round(cylinder.Axis().Direction().Y(), self.precision),
+                             round(cylinder.Axis().Direction().Z(), self.precision))
 
                 depth = round(abs(surface.LastVParameter() - surface.FirstVParameter()), self.precision)
 
                 hole = Hole(location, direction, diameter, depth)
 
                 if hole not in self.holes:
-                    # if diameter == 8:
-                    self.holes.append(hole)
+                    if self.filters == 0:
+                        self.holes.append(hole)
+                    elif diameter in self.filters:
+                        self.holes.append(hole)
 
         print("Found", str(len(self.holes)), "circles.")
 
-    def write_csv(self):
-        with open(f".\\{self.name}.csv", mode='w', newline='') as file:
-            writer = csv.writer(file)
-            for hole in self.holes:
-                writer.writerow((hole.location[0], hole.location[1], hole.location[2],
-                                 hole.direction[0], hole.direction[1], hole.direction[2]))
+    def export_csv(self):
+        dir_path = f"./{self.name}"
+        while os.path.exists(dir_path):
+            # Remove the directory and all its contents
+            # shutil.rmtree(dir_path)
+            dir_path = dir_path + "_new"
+
+        if self.name != "None":
+            os.mkdir(dir_path)
+
+        for hole in self.holes:
+            size = hole.selected_diameter
+            length = hole.selected_length
+
+            if size == "None" or length == "None":
+                continue
+
+            file_path = f"./{dir_path}/{size}_{length}"
+            line_data = (hole.location[0], hole.location[1], hole.location[2],
+                         hole.direction[0], hole.direction[1], hole.direction[2])
+
+            if os.path.exists(file_path):
+                # Open the file in append mode
+                with open(file_path, 'a', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(line_data)
+            else:
+                # Open the file in write mode
+                with open(file_path, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(line_data)

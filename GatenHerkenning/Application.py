@@ -7,7 +7,7 @@ from Hole import Hole
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Fuse
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
 from OCC.Core.gp import gp_Trsf, gp_Vec, gp_Ax2, gp_Pnt, gp_Dir, gp_Ax3, gp_Quaternion
-from OCC.Display import OCCViewer
+# from OCC.Display import OCCViewer
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
 from vtkmodules import qt
@@ -38,22 +38,153 @@ class ClickableWidget(QWidget):
         super().mousePressEvent(event)
 
 
-class Application(QDialog):
+class SetupWindow(QWidget):
     def __init__(self):
         super().__init__()
+        self.logo = "./VDL.png"
+        pixmap = qtDisplay.QtGui.QPixmap(self.logo)
+        self.icon = pixmap.scaled(32, 32)
+
+        self.selected_file_name = ""
+        self.setWindowTitle("VDL | Hole recognition")
+        self.setWindowIcon(qtDisplay.QtGui.QIcon(self.icon))
+        self.setGeometry(580, 300, 800, 300)
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
+
+        self.setup_ui()
+
+
+    def setup_ui(self):
+        layout = QVBoxLayout()
+
+        select_layout = QHBoxLayout()
+        layout.addLayout(select_layout)
+
+        select_button = QPushButton("Select file")
+        select_button.clicked.connect(self.select_file)
+        select_layout.addWidget(select_button)
+
+        self.input_select_file = QLineEdit("No file selected.")
+        self.input_select_file.setReadOnly(True)
+        select_layout.addWidget(self.input_select_file)
+
+        name_layout = QHBoxLayout()
+        layout.addLayout(name_layout)
+
+        name_button = QPushButton("Name:")
+        name_layout.addWidget(name_button)
+
+        self.input_label_name = QLineEdit()
+        self.input_label_name.setReadOnly(True)
+        name_layout.addWidget(self.input_label_name)
+
+        # load = QPushButton("Confirm", self)
+        # # load.clicked.connect(self.button_load)
+        # name_layout.addWidget(load)
+
+        filter_layout = QHBoxLayout()
+        layout.addLayout(filter_layout)
+
+        button_layout = QVBoxLayout()
+        filter_layout.addLayout(button_layout)
+
+        filter_button = QPushButton("Filters:")
+        filter_button.setMaximumWidth(80)
+        button_layout.addWidget(filter_button)
+
+        button_layout.addSpacing(120)
+
+        add_button = QPushButton("Add Filter")
+        add_button.setMaximumWidth(80)
+        add_button.clicked.connect(self.add_float)
+        button_layout.addWidget(add_button)
+
+        remove_button = QPushButton("Remove")
+        remove_button.setMaximumWidth(80)
+        remove_button.clicked.connect(self.remove_selected)
+        button_layout.addWidget(remove_button)
+
+        self.float_list_widget = QListWidget()
+        filter_layout.addWidget(self.float_list_widget)
+
+        # Add a button to start the main application
+        self.start_button = QPushButton("Start Application")
+        self.start_button.clicked.connect(self.start_application)
+        self.start_button.setEnabled(False)
+        layout.addWidget(self.start_button)
+
+        self.setLayout(layout)
+
+    def select_file(self):
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
+                                                   "STEP Files (*.stp *.step)", options=options)
+        if file_name:
+            self.selected_file = file_name
+            self.input_select_file.setText(self.selected_file)
+            base_name = os.path.basename(self.selected_file)
+            file_stem = os.path.splitext(base_name)[0]
+            self.input_label_name.setReadOnly(False)
+            self.input_label_name.setText(file_stem)
+            self.selected_file_name = file_stem
+
+            print(f"File selected: {self.selected_file}")
+
+            self.start_button.setEnabled(True)
+
+    def add_float(self):
+        self.setWindowIcon(qtDisplay.QtGui.QIcon(self.icon))
+        float_value, ok = QInputDialog.getDouble(self, "Add filter", "Enter a hole size to add to the filters:")
+
+        if ok:
+            self.float_list_widget.addItem(str(float_value))
+
+    def remove_selected(self):
+        selected_items = self.float_list_widget.selectedItems()
+        for item in selected_items:
+            self.float_list_widget.takeItem(self.float_list_widget.row(item))
+
+    def start_application(self):
+        if self.selected_file_name != "":
+            filters = [float(self.float_list_widget.item(i).text()) for i in range(self.float_list_widget.count())]
+
+            self.hide()  # Hide the setup window
+            self.application = Application(self.selected_file, self.selected_file_name, filters)
+            self.application.show()
+
+
+class Application(QWidget):
+    def __init__(self, selected_file, selected_name, filters=0):
+        super().__init__()
+        self.index = 0
+        self.insert_diameter = ["None", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M10", "M12"]
+        self.insert_length = ["None", "x1", "x1.5", "x2"]
         self.preview_cone = None
         self.shape = None
-        self.title = "PyQt5 / pythonOCC"
+
+        self.title = "VDL | Hole recognition | " + selected_name
+
+        self.logo = "./VDL.png"
+        pixmap = qtDisplay.QtGui.QPixmap(self.logo)
+        self.icon = pixmap.scaled(32, 32)
+
         self.left = 200
         self.top = 100
         self.width = 1500
         self.height = 800
+
         self.init_ui()
 
-        self.index = 0
+        self.step = StepModel(selected_file, selected_name, filters)
+        self.model = self.display.DisplayShape(self.step.shape, material=Graphic3d_NOM_ALUMINIUM)
+        self.display.FitAll()
+        self.create_scroll_list()
 
     def init_ui(self):
         self.setWindowTitle(self.title)
+
+        self.setWindowIcon(qtDisplay.QtGui.QIcon(self.icon))
+
         self.setGeometry(self.left, self.top, self.width, self.height)
 
         self.create_vertical_layout()
@@ -72,38 +203,11 @@ class Application(QDialog):
         self.display.EnableAntiAliasing()
 
     def create_vertical_layout(self):
-        self.verticalGroupBox = QGroupBox("Actions")
+        self.verticalGroupBox = QGroupBox()
         self.verticalGroupBox.setMaximumWidth(800)
         layout = QVBoxLayout()
 
-        self.input_select_file = QLineEdit("No file selected.")
-        layout.addWidget(self.input_select_file)
-
-        button = QPushButton("Select File")
-        button.clicked.connect(self.select_file)
-        layout.addWidget(button)
-
-        self.input_label_name = QLineEdit()
-        self.input_label_name.setReadOnly(True)
-        layout.addWidget(self.input_label_name)
-
-        load = QPushButton("Load Step Model", self)
-        load.clicked.connect(self.button_load)
-        layout.addWidget(load)
-
-        # eras = QPushButton("Erase Box", self)
-        # eras.clicked.connect(self.erase_shape)
-        # layout.addWidget(eras)
-        #
-        # move1 = QPushButton("Move to position 1", self)
-        # move1.clicked.connect(self.move1)
-        # layout.addWidget(move1)
-        #
-        # move2 = QPushButton("Move to position 2", self)
-        # move2.clicked.connect(self.move2)
-        # layout.addWidget(move2)
-
-        hole_widget = self.create_hole_widget(Hole(("X", "Y", "Z"), ("rX", "rY", "rZ"), "Size", "Depth"), "ID", True)
+        hole_widget = self.create_hole_widget(Hole(("X", "Y", "Z"), ("rX", "rY", "rZ"), "Diameter", "Depth"), "ID", True)
         hole_widget.layout().setContentsMargins(0, 0, 15, 0)
         layout.addWidget(hole_widget)
 
@@ -115,18 +219,17 @@ class Application(QDialog):
 
         self.scrollAreaLayout.setContentsMargins(0, 0, 0, 0)
         self.scrollAreaLayout.setSpacing(0)
-        # self.scrollAreaWidgetContents.setContentsMargins(0, 0, 0, 0)
-        # self.scrollAreaWidgetContents.setLayout(self.scrollAreaLayout)
 
         layout.addWidget(self.scrollArea)
 
-        # self.create_scroll_list()
+        get = QPushButton("Export holes to file", self)
+        get.clicked.connect(self.get_selected_values)
+        layout.addWidget(get)
 
-        # layout.addStretch(1)
         self.verticalGroupBox.setLayout(layout)
 
     def create_horizontal_layout(self):
-        self.horizontalGroupBox = QGroupBox("Display PythonOCC")
+        self.horizontalGroupBox = QGroupBox()
         layout = QHBoxLayout()
         layout.addWidget(self.verticalGroupBox)
 
@@ -137,17 +240,8 @@ class Application(QDialog):
     def create_scroll_list(self):
         for i in reversed(range(self.scrollAreaLayout.count())):
             widget_to_remove = self.scrollAreaLayout.itemAt(i).widget()
-            # remove it from the layout list
             self.scrollAreaLayout.removeWidget(widget_to_remove)
-            # remove it from the gui
             widget_to_remove.setParent(None)
-
-        # self.holes = []
-
-        # for x in range(30):
-        #     self.holes.append(Hole((random.randint(0, 100), random.randint(0, 100), random.randint(0, 100)),
-        #                            (random.randint(0, 100), random.randint(0, 100), random.randint(0, 100)),
-        #                            random.randint(2, 12), random.randint(2, 12)))
 
         for i, hole in enumerate(self.step.holes):
             hole_widget = self.create_hole_widget(hole, i)
@@ -157,7 +251,6 @@ class Application(QDialog):
     def hole_clicked(self, index):
         print(f"Hole clicked: {index}")
         self.preview_position(*self.step.holes[index].location, *self.step.holes[index].direction)
-        # Perform actions based on the clicked index
 
     def create_hole_widget(self, hole, index, header=False):
         hole_widget = ClickableWidget(index, self)
@@ -173,7 +266,7 @@ class Application(QDialog):
                     """
 
         common_style_dark = """
-                            background-color: lightgray;
+                            background-color: lightblue;
                             border: 1px solid gray;
                             padding: 2px;
                             border-radius: 3px;
@@ -181,6 +274,8 @@ class Application(QDialog):
 
         widgets = [
             QLabel(f"Hole: {index}"),
+            QLabel(f"{hole.diameter}"),
+            QLabel(f"{hole.depth}"),
             QLabel(f"{hole.location[0]}"),
             QLabel(f"{hole.location[1]}"),
             QLabel(f"{hole.location[2]}"),
@@ -191,6 +286,7 @@ class Application(QDialog):
 
         if header:
             widgets.append(QLabel(f"Insert type"))
+            widgets.append(QLabel(f"x length"))
 
         for widget in widgets:
             if index == "ID":
@@ -202,31 +298,40 @@ class Application(QDialog):
             else:
                 widget.setStyleSheet(common_style)
                 layout.addWidget(widget)
-            # if index != "Hole ID":
-            #     if int(index) % 2 == 0:
-            #         widget.setStyleSheet
-            if not header:
-                menu_select_type.addItems(hole.insert_types)
-                layout.addWidget(menu_select_type)
 
-        direction_flip_button = QPushButton("Flip")
-        direction_flip_button.clicked.connect(lambda: self.flip_direction)
-        layout.addWidget(direction_flip_button)
+        if not header:
+            menu_select_type = QComboBox()
+            menu_select_type.addItems(self.insert_diameter)
+            menu_select_type.setObjectName("menu_select_type")
+
+            menu_select_length = QComboBox()
+            menu_select_length.addItems(self.insert_length)
+            menu_select_length.setObjectName("menu_select_length")
+
+            if index % 2 == 0:
+                menu_select_type.setStyleSheet("background-color: lightblue")
+                menu_select_length.setStyleSheet("background-color: lightblue")
+
+            layout.addWidget(menu_select_type)
+            layout.addWidget(menu_select_length)
 
         hole_widget.setLayout(layout)
         return hole_widget
 
-    def flip_direction(self, hole):
-        hole.direction = tuple(-d for d in hole.direction)
-        self.create_scroll_list()
-
-    def button_load(self):
-        if self.input_label_name != "No file selected.":
-            self.step = StepModel(self.input_select_file.text())
-
-        self.model = self.display.DisplayShape(self.step.shape, material=Graphic3d_NOM_ALUMINIUM)
-        self.display.FitAll()
-        self.create_scroll_list()
+    def get_selected_values(self):
+        for i in range(self.scrollAreaLayout.count()):
+            widget = self.scrollAreaLayout.itemAt(i).widget()
+            if isinstance(widget, ClickableWidget):
+                for child_widget in widget.findChildren(QComboBox):
+                    if child_widget.currentIndex() != -1:
+                        index = widget.index
+                        if child_widget.objectName() == "menu_select_type":
+                            diameter = child_widget.currentText()
+                            self.step.holes[index].selected_diameter = diameter
+                        elif child_widget.objectName() == "menu_select_length":
+                            length = child_widget.currentText()
+                            self.step.holes[index].selected_length = length
+        self.step.export_csv()
 
     def erase_shape(self):
         self.display.Context.Erase(self.model, True)
@@ -234,7 +339,7 @@ class Application(QDialog):
     def preview_position(self, x, y, z, rx, ry, rz):
         trsf = gp_Trsf()
 
-        translation_vector = gp_Vec(x, y, z)  # Move the box 50 units along the X-axis
+        translation_vector = gp_Vec(x, y, z)
 
         new_direction = gp_Dir(rx, ry, rz)  # Example: align with the X-axis
         new_up_direction = gp_Dir(0, 1, 0)  # Example: align with the Y-axis
@@ -246,6 +351,8 @@ class Application(QDialog):
 
         trsf.SetTranslation(translation_vector)
 
+        self.display.FitAll()
+
         if self.preview_cone is not None:
             self.display.Context.Erase(self.preview_cone, True)
 
@@ -256,42 +363,4 @@ class Application(QDialog):
         cone = BRepPrimAPI_MakeCone(cone_position, cone_radius, 0, cone_height).Shape()
 
         transformed_cone = BRepBuilderAPI_Transform(cone, trsf, True).Shape()
-        self.preview_cone = self.display.DisplayShape(transformed_cone, color="green")[0]\
-
-        # Adjust camera view to fit the displayed objects
-        self.display.FitAll()
-        #
-        # # Set the view orientation based on the cone's rotation
-        # angle_x = -ry * 180 / 3.14159
-        # angle_y = rz * 180 / 3.14159
-        # angle_z = rx * 180 / 3.14159
-        #
-        # self.display.View.SetTwist(angle_z)
-        # self.display.View.SetUp(V3d_Yneg)  # Set the up direction as negative Y axis
-        #
-        # self.display.View.Redraw()
-
-    def move1(self):
-        if self.index < len(self.step.holes) - 1:
-            self.index += 1
-            self.preview_position(*self.step.holes[self.index].location, *self.step.holes[self.index].direction)
-
-    def move2(self):
-        if self.index > 0:
-            self.index -= 1
-            self.preview_position(*self.step.holes[self.index].location, *self.step.holes[self.index].direction)
-
-    def select_file(self):
-        options = QFileDialog.Options()
-        # options |= QFileDialog.DontUseNativeDialog
-        file_name, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
-                                                   "STEP Files (*.stp *.step)", options=options)
-
-        if file_name:
-            self.selected_file = file_name
-            self.input_select_file.setText(self.selected_file)
-            base_name = os.path.basename(self.selected_file)
-            file_stem = os.path.splitext(base_name)[0]
-            self.input_label_name.setReadOnly(False)
-            self.input_label_name.setText(file_stem)
-            print(f"File selected: {self.selected_file}")
+        self.preview_cone = self.display.DisplayShape(transformed_cone, color="green", update=True)[0]
