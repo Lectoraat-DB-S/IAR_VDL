@@ -235,3 +235,8 @@ def poseToValues(pose):
     # Convert strings to float.
     posefloat = np.array(pose,dtype=np.float64)
     return posefloat
+
+def valuesToPose(values):
+    # String = f'{1} + {2} = {1 + 2}' # James comment moment (f'' is een manier of een string makkelijker te formatten met waardes.)
+
+    return "p["+str(values[0])+","+str(values[1])+","+str(values[2])+","+str(values[3])+","+str(values[4])+","+str(values[5])+"]"

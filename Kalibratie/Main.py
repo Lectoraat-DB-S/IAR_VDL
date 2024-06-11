@@ -69,24 +69,35 @@ def DoCalibration(write_conn,read_conn):
     b = [float(measurement_2[0]),float(measurement_2[1]),float(measurement_2[5])]
     c = [float(measurement_3[0]),float(measurement_3[1]),float(measurement_3[5])]
     d = [float(measurement_4[0]),float(measurement_4[1]),float(measurement_4[5])]
+
     out = cal.CalculateOffsets([a,b,c,d],DigitalMiddlePoint)
     # print("Debug: " + str(out[0]) + ", " + str(out[1]) + ", " + str(math.degrees(out[2])))
-    return [out[0],out[1],out[2]]
+    return [out[0],out[1],0.0,0.0,0.0,out[2]-math.radians(45)]
 
-# Start of runtime code.
+total_xy_rz = [0,0,0]
+count = 1
 
-urc.greenLightUR(IP_UR)
-write,read = urc.connectReadWrite(IP_UR,PORT_RECIEVE)
+# # Start of runtime code.
+while True:
+    urc.greenLightUR(IP_UR)
+    write,read = urc.connectReadWrite(IP_UR,PORT_RECIEVE)
 
-# Main body.
-Offset =  DoCalibration(write,read)
-print(Offset)
-print(math.degrees(Offset[2]))
+    # Main body.
+    Offset =  DoCalibration(write,read)
+    total_xy_rz = [total_xy_rz[0] + Offset[0],total_xy_rz[1] + Offset[1],total_xy_rz[2] + Offset[2]]
+    print(f'\nAverage variances')
+    print(f'--------------------\nX-Axis: {total_xy_rz[0]/count}, Y-Axis: {total_xy_rz[1]/count}, rZ-Axis: {total_xy_rz[2]/count}')
+    count = count + 1
 
-urc.closeReadWrite(write,read)
+    # Close the connection.
+    urc.closeReadWrite(write,read)
+# # Offset = cal.CalculateOffsets([[-0.920512, 0.0195832, -1.18521], [-0.920497, 0.0667357, -1.1851], [-0.990248, 0.140676, 2.20752], [-1.03219, 0.140834, 2.20742]],[-1.011832,0.047732,-0.0871,0.0,0.0,0.0])
+# # print(Offset)
+# # print(math.degrees(Offset[5]))
 
-# # Debugging input thing
-# measurement_1 = [-0.571832, -0.0329811, 0.336053, 1.18806, 1.23434, 1.16952]
-# measurement_2 = [-0.571194, -0.00485261, 0.333504, 1.18808, 1.23436, 1.16951]
-# measurement_3 = [-1.05558, 0.438235, 0.202389, -1.53864, -0.10022, -0.0133398]
+# # Attempt to apply offset to a single point.
+# Middle = urc.valuesToPose(DigitalMiddlePoint)
+# Point1 = "get_forward_kin([-0.623255, -0.877154, 1.371180, -0.072630, 0.990249, 2.900510])"
+# base = "p[0.0,0.0,0.0,0.0,0.0,0.0]"
+# CalibrationOffset = urc.valuesToPose(Offset)
 

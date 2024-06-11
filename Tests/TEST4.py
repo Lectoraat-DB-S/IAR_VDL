@@ -14,10 +14,12 @@ TCP_SENSOR = TCP[1]
 urc.greenLightUR(IP_UR)
 write,read = urc.connectReadWrite(IP_UR,PORT_RECIEVE)
 
-pose = "[0,-1.570,1.570,0,1.570,-1.570]"
-transpose = "p[0,0,0,0,0,0]"
+Centre_Point = "p(-1.011832, 0.047732, -0.0871,0.0,0.0,0.0)"
+Point1 = "p(-0.098,0.1155,0.0755,-0.034,1.571,-0.034)"
+base = "p(0.0,0.0,0.0,0.0,0.0,0.0)"
+
 
 # Test pose transposing etc.
-urc.syncWrite("movel(pose_trans("+transpose+", get_forward_kin("+pose+")))",write,read)
+urc.syncWrite("movel(pose_trans("+Centre_Point+", "+Point1+"))",write,read)
 
 urc.closeReadWrite(write,read)

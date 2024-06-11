@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import os # For formatting the prints.
 
 np.seterr(divide='raise')
 
@@ -22,6 +23,9 @@ def CalculateOffsets(measurement_points_abcd,digital_middlepoint):
     B = measurement_points_abcd[1] 
     C = measurement_points_abcd[2] 
     D = measurement_points_abcd[3] 
+
+    # Adding 45 degrees to rZ offset, in order to compensate for the method used to get the offset angle. (If the object's rotation is 0, it will measure it as 45. (Inverse tangent of 1 or -1.)
+    digital_middlepoint[5] = digital_middlepoint[5]+math.radians(45)
 
     # See Mark's feedback, using lstsq to calculate the lines instead of manually.
     # Put the point data together in arrays.
@@ -74,21 +78,20 @@ def CalculateOffsets(measurement_points_abcd,digital_middlepoint):
     # print(digital_middlepoint[5])
 
     # Output is X, Y and rZ in Radians. [X,Y,rZ]
+
+    
     offset_x_y_rz = [centre_point[0]-digital_middlepoint[0]+0.0032521844999999455,centre_point[1]-digital_middlepoint[1]+0.0024827895142857104,rz_offset-digital_middlepoint[5]]
 
-    # Debugging section
-    # print("--------Calibration Debug--------------")
-    # print("Travel: " + str(travel_length))
-    # print("CE1: " + str(coefficient_1) + ", CE2: " + str(coefficient_2))
-    # print("Offset 1: " + str(offset_1) + ", Offset 2: " + str(offset_2))
-    # print()
-    # print("Corner point: " + str(corner_point))
-    # print()
-    # print("Delta 1: " + str(delta_1) + ", Delta 2: " + str(delta_2))
-    # print("Angle_1: " + str(math.degrees(angle_1)) + ", Angle_2: " + str(math.degrees(angle_2)))
-    # print("Angle_1 Cos: " + str(math.cos(angle_1)) + ", Angle_2 Cos: " + str(math.cos(angle_2)))
-    # print("Angle_1 Sin: " + str(math.sin(angle_1)) + ", Angle_2 sin: " + str(math.sin(angle_2)))
-    # print("Offsets: " + str(offset_x_y_rz))
-    # print("--------End of Calibration Debug-------")
-    # print("\n")
+    # Debugging section.
+    os.system('cls')
+    print("--------------------- Calibration Results ----------------------")
+    print("\n")
+    print("X-Axis offset: " + str(round(offset_x_y_rz[0]*1000,2)) + "mm\t Y-Axis offset: " + str(round(offset_x_y_rz[1]*1000,2)) + "mm\t Z-rotation offset: " + str(round(math.degrees(offset_x_y_rz[2]),3)) + " degrees.")
+    print("\n")
+    print("Raw data:")
+    print(f'Expected Centre point: {digital_middlepoint}\tMeasured Centre point: {centre_point}')
+    print(f'Corner point: {corner_point}')
+    print("\n")
+    # print(f'Line 1 formula: y = {round(m1,1)}x + {round(c1,1)}\tLine 2 formula: y = {round(m2,1)}x + {round(c2,1)}')
+
     return offset_x_y_rz
