@@ -4,3 +4,5 @@ class Hole:
         self.direction = direction
         self.diameter = diameter
         self.depth = depth
+        self.selected_diameter = "None"
+        self.selected_length = "None"
